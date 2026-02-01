@@ -42,7 +42,17 @@ Replace `BUCKET_NAME` with your bucket name.
 ### 3. Use the bucket in Pulumi
 
 - **Locally:** Run once (where Pulumi CLI is installed): `pulumi login gs://BUCKET_NAME`
-- **GitHub Actions:** The workflow sets the backend to `gs://BUCKET_NAME`. No Pulumi token required.
+- **GitHub Actions:** The workflow sets the backend to `gs://BUCKET_NAME`. No Pulumi Cloud token required.
+
+### 4. GitHub Actions: stack passphrase (secrets)
+
+Pulumi encrypts stack config and secrets with a passphrase. In CI you must provide the same passphrase via a repo secret:
+
+1. In the repo: **Settings → Secrets and variables → Actions** → **New repository secret**.
+2. Name: `PULUMI_CONFIG_PASSPHRASE`
+3. Value: the same passphrase you use locally for this stack (e.g. when you first ran `pulumi stack init dev` or when prompted for “Enter your passphrase”).
+
+The workflow passes this into the Pulumi step so `pulumi stack init` / `pulumi up` can decrypt state.
 
 ## Verification commands
 
