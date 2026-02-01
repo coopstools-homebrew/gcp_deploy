@@ -33,6 +33,7 @@ jobs:
           go-version: "1.22"
 
       - name: Restore Go dependencies
+        working-directory: infra
         run: go mod download
 
       - name: Pulumi Up
@@ -41,4 +42,5 @@ jobs:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         with:
           command: up
+          working-directory: infra
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
