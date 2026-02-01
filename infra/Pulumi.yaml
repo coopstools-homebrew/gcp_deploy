@@ -1,6 +1,3 @@
 name: gcp-deploy
 runtime: go
 description: Pulumi IaC for GCP (e2-micro VM, firewall, static IP). Deploy via GitHub Actions with WIF; state in GCS.
-config:
-  gcp:project: coopstools-homebrew-prj
-  gcp:zone: us-central1-a
