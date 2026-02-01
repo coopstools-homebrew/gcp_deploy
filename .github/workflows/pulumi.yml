@@ -43,4 +43,5 @@ jobs:
         with:
           command: up
           working-directory: infra
+          stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
