@@ -44,15 +44,37 @@ Replace `BUCKET_NAME` with your bucket name.
 - **Locally:** Run once (where Pulumi CLI is installed): `pulumi login gs://BUCKET_NAME`
 - **GitHub Actions:** The workflow sets the backend to `gs://BUCKET_NAME`. No Pulumi Cloud token required.
 
-### 4. GitHub Actions: stack passphrase (secrets)
+### 4. GitHub Actions: Pulumi access token and passphrase (secrets)
 
-Pulumi encrypts stack config and secrets with a passphrase. In CI you must provide the same passphrase via a repo secret:
+The workflow needs **two** repo secrets. They are different values:
 
-1. In the repo: **Settings → Secrets and variables → Actions** → **New repository secret**.
-2. Name: `PULUMI_CONFIG_PASSPHRASE`
-3. Value: the same passphrase you use locally for this stack (e.g. when you first ran `pulumi stack init dev` or when prompted for “Enter your passphrase”).
+| Secret | Where it comes from | Purpose |
+|--------|---------------------|--------|
+| **Access token** | Generated in the [Pulumi Console](https://app.pulumi.com/) (e.g. Settings → Access Tokens). | Used by the Pulumi CLI and GitHub Action to authenticate with Pulumi (e.g. for the backend). Store as a repo secret (e.g. `PULUMI_ACCESS_TOKEN`) and pass it as `PULUMI_ACCESS_TOKEN` in the workflow. |
+| **Passphrase** | You choose it when you create or use the stack (e.g. when first running `pulumi stack init` or when prompted for “Enter your passphrase”). | Used to encrypt/decrypt stack config and secrets. Store as a repo secret (e.g. `PULUMI_CONFIG_PASSPHRASE`) and pass it as `PULUMI_CONFIG_PASSPHRASE` in the workflow. |
 
-The workflow passes this into the Pulumi step so `pulumi stack init` / `pulumi up` can decrypt state.
+Add both in the repo: **Settings → Secrets and variables → Actions** → **New repository secret**. The workflow passes them into the Pulumi step so `pulumi up` can authenticate and decrypt state.
+
+**When you run the Pulumi CLI locally** (e.g. `pulumi login`, `pulumi config set`, `pulumi up`), use the **same** access token and passphrase so the CLI can read and write the same backend state and config. Set `PULUMI_ACCESS_TOKEN` in your environment to the same value as the repo secret, and use the same passphrase when the CLI prompts for it.
+
+#### Setting required config via CLI
+
+The infra program requires `gcp:project`. You can set it once per stack with:
+
+```bash
+cd infra
+pulumi login gs://BUCKET_NAME
+pulumi stack select STACK_NAME --create   # e.g. main or dev
+pulumi config set gcp:project GCP_PROJECT_ID
+```
+
+| Part | Meaning |
+|------|--------|
+| `infra` | Pulumi project directory (contains `Pulumi.yaml`). |
+| `gs://BUCKET_NAME` | GCS backend URL for Pulumi state (e.g. `gs://coopstools-homebrew-prj-pulumi-state`). |
+| `STACK_NAME` | Stack to configure, e.g. `main` (CI) or `dev` (local). Use `--create` to create the stack if it does not exist. |
+| `gcp:project` | Pulumi config key: namespace `gcp`, key `project`. The program reads this via `config.Require("gcp:project")`. |
+| `GCP_PROJECT_ID` | Your GCP project ID (e.g. `coopstools-homebrew-prj`). |
 
 ## Verification commands
 

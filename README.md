@@ -29,7 +29,7 @@ The workflow uses **Workload Identity Federation** and optionally **GitHub Varia
 | `WIF_PROVIDER` | `projects/853352203266/locations/global/workloadIdentityPools/github-pool/providers/github-oidc-provider` |
 | `GCP_SERVICE_ACCOUNT` | `github-actions@coopstools-homebrew-prj.iam.gserviceaccount.com` |
 
-If you use a different project/pool/SA, set these variables. The workflow has `id-token: write` and `contents: read`; no GitHub secrets are required for GCP auth.
+If you use a different project/pool/SA, set these variables. The workflow has `id-token: write` and `contents: read`; no GitHub secrets are required for GCP auth. For Pulumi (access token from the Pulumi Console and user-generated passphrase), add the two repo secrets described in [docs/pulumi-state-gcs.md](docs/pulumi-state-gcs.md#4-github-actions-pulumi-access-token-and-passphrase-secrets); use the same access token and passphrase when running the Pulumi CLI locally.
 
 ## SSH key
 
