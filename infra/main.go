@@ -12,9 +12,9 @@ import (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		cfg := config.New(ctx, "")
-		project := cfg.Require("gcp:project")
-		zone := cfg.Get("gcp:zone")
+		cfg := config.New(ctx, "gcp")
+		project := cfg.Require("project")
+		zone := cfg.Get("zone")
 		if zone == "" {
 			zone = "us-central1-a"
 		}
@@ -34,8 +34,8 @@ systemctl restart sshd
 
 		// Reserved static external IP (region = us-central1 for free tier)
 		extIP, err := compute.NewAddress(ctx, "vm-ip", &compute.AddressArgs{
-			Name:   pulumi.String("gcp-deploy-vm-ip"),
-			Region: pulumi.String("us-central1"),
+			Name:    pulumi.String("gcp-deploy-vm-ip"),
+			Region:  pulumi.String("us-central1"),
 			Project: pulumi.String(project),
 		})
 		if err != nil {
@@ -61,10 +61,10 @@ systemctl restart sshd
 
 		// e2-micro instance with static IP, SSH keys, startup script
 		instance, err := compute.NewInstance(ctx, "vm", &compute.InstanceArgs{
-			Name:         pulumi.String("gcp-deploy-vm"),
-			MachineType:  pulumi.String("e2-micro"),
-			Zone:         pulumi.String(zone),
-			Project:      pulumi.String(project),
+			Name:        pulumi.String("gcp-deploy-vm"),
+			MachineType: pulumi.String("e2-micro"),
+			Zone:        pulumi.String(zone),
+			Project:     pulumi.String(project),
 			BootDisk: &compute.InstanceBootDiskArgs{
 				InitializeParams: &compute.InstanceBootDiskInitializeParamsArgs{
 					Image: pulumi.String("debian-cloud/debian-12"),
