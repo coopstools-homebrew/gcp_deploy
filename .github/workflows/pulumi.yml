@@ -7,7 +7,6 @@ name: Pulumi
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 jobs:
   deploy:
@@ -35,17 +34,11 @@ jobs:
 
       - name: Restore Go dependencies
         run: go mod download
-        working-directory: infra
 
       - name: Pulumi Up
         uses: pulumi/actions@v6
         env:
-          # Required for GCS backend: decrypts stack config/secrets (set in repo Secrets as PULUMI_CONFIG_PASSPHRASE).
-          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         with:
           command: up
-          stack-name: dev
-          work-dir: infra
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
-          upsert: true
