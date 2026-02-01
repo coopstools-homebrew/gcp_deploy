@@ -1,0 +1,50 @@
+# Pulumi IaC: deploy GCP resources (e2-micro VM, firewall, static IP) via Workload Identity Federation.
+# No long-lived GCP keys; state in GCS. See README and docs/ for setup.
+
+name: Pulumi
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PULUMI_ACCESS_TOKEN: ""  # not used; we use GCS backend
+  PULUMI_BACKEND_URL: gs://coopstools-homebrew-prj-pulumi-state
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER || 'projects/853352203266/locations/global/workloadIdentityPools/github-pool/providers/github-oidc-provider' }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT || 'github-actions@coopstools-homebrew-prj.iam.gserviceaccount.com' }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Pulumi CLI
+        uses: pulumi/setup-pulumi@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Restore Go deps & run Pulumi
+        working-directory: infra
+        run: |
+          go mod download
+          pulumi login gs://coopstools-homebrew-prj-pulumi-state
+          pulumi stack select dev --create
+          pulumi preview --diff
+          pulumi up --yes
