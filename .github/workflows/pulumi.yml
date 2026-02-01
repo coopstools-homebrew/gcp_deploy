@@ -41,7 +41,8 @@ jobs:
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         with:
-          command: up --upsert
+          command: up
+          upsert: true # create the stack if it doesn't exist - should be removed after first push
           work-dir: infra
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
