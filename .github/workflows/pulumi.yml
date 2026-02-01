@@ -51,3 +51,5 @@ jobs:
           work-dir: infra
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
+          config-map:
+            gcp-deploy:gcp:project: coopstools-homebrew-prj
