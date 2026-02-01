@@ -43,15 +43,13 @@ jobs:
         # These values are misnamed in GitHub and should be updated later
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_ACTUAL_PASSPHRASE }}
-          # Required by infra: gcp:project (Pulumi reads PULUMI_CONFIG_<key> with : → _)
-          GOOGLE_PROJECT: 'coopstools-homebrew-prj'
         with:
           command: up
           upsert: true # create the stack if it doesn't exist - should be removed after first push
           work-dir: infra
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
-          config-map: |
-            "gcp:project": "${{ vars.GCP_PROJECT || 'coopstools-homebrew-prj' }}"
+          # JSON is valid YAML; action parses this and calls setAllConfig() before up()
+          config-map: '{"gcp:project": "coopstools-homebrew-prj"}'
 
 
