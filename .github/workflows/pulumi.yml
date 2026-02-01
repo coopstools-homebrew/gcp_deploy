@@ -41,7 +41,7 @@ jobs:
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         with:
-          command: up
+          command: up --upsert
           work-dir: infra
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
