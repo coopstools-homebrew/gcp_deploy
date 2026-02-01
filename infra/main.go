@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/cloudrun"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/compute"
+	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/projects"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -42,6 +44,15 @@ systemctl restart sshd
 			return err
 		}
 
+		// Enable Cloud Run API (no manual step)
+		_, err = projects.NewService(ctx, "run-api", &projects.ServiceArgs{
+			Project: pulumi.String(project),
+			Service: pulumi.String("run.googleapis.com"),
+		})
+		if err != nil {
+			return err
+		}
+
 		// Firewall: allow SSH from anywhere (lock down later with your IP if desired)
 		_, err = compute.NewFirewall(ctx, "allow-ssh", &compute.FirewallArgs{
 			Name:    pulumi.String("allow-ssh-gcp-deploy"),
@@ -51,6 +62,23 @@ systemctl restart sshd
 				&compute.FirewallAllowArgs{
 					Protocol: pulumi.String("tcp"),
 					Ports:    pulumi.StringArray{pulumi.String("22")},
+				},
+			},
+			SourceRanges: pulumi.StringArray{pulumi.String("0.0.0.0/0")},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Firewall: allow HTTP/HTTPS to VM (for Phase 3 reverse proxy)
+		_, err = compute.NewFirewall(ctx, "allow-http-https", &compute.FirewallArgs{
+			Name:    pulumi.String("allow-http-https-gcp-deploy"),
+			Network: pulumi.String("default"),
+			Project: pulumi.String(project),
+			Allows: compute.FirewallAllowArray{
+				&compute.FirewallAllowArgs{
+					Protocol: pulumi.String("tcp"),
+					Ports:    pulumi.StringArray{pulumi.String("80"), pulumi.String("443")},
 				},
 			},
 			SourceRanges: pulumi.StringArray{pulumi.String("0.0.0.0/0")},
@@ -90,6 +118,43 @@ systemctl restart sshd
 			return err
 		}
 
+		// Phase 1: Cloud Run service (placeholder image, min 0, us-central1)
+		cloudRunSvc, err := cloudrun.NewService(ctx, "hello", &cloudrun.ServiceArgs{
+			Name:     pulumi.String("gcp-deploy-hello"),
+			Location: pulumi.String("us-central1"),
+			Project:  pulumi.String(project),
+			Template: &cloudrun.ServiceTemplateArgs{
+				Spec: &cloudrun.ServiceTemplateSpecArgs{
+					Containers: cloudrun.ServiceTemplateSpecContainerArray{
+						&cloudrun.ServiceTemplateSpecContainerArgs{
+							Image: pulumi.String("gcr.io/cloudrun/container/hello"),
+						},
+					},
+				},
+			},
+			Traffics: cloudrun.ServiceTrafficArray{
+				&cloudrun.ServiceTrafficArgs{
+					Percent:        pulumi.Int(100),
+					LatestRevision: pulumi.Bool(true),
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Allow unauthenticated invokes (for Phase 1 test via curl/browser)
+		_, err = cloudrun.NewIamMember(ctx, "hello-invoker", &cloudrun.IamMemberArgs{
+			Location: cloudRunSvc.Location,
+			Project:  cloudRunSvc.Project,
+			Service:  cloudRunSvc.Name,
+			Role:     pulumi.String("roles/run.invoker"),
+			Member:   pulumi.String("allUsers"),
+		})
+		if err != nil {
+			return err
+		}
+
 		// Outputs
 		ctx.Export("instanceName", instance.Name)
 		ctx.Export("instanceId", instance.InstanceId)
@@ -98,6 +163,12 @@ systemctl restart sshd
 			return fmt.Sprintf("ssh james@%s", ip)
 		})
 		ctx.Export("sshCommand", sshCmd)
+		ctx.Export("cloudRunUrl", cloudRunSvc.Statuses.ApplyT(func(statuses []cloudrun.ServiceStatus) (string, error) {
+			if len(statuses) == 0 || statuses[0].Url == nil {
+				return "", fmt.Errorf("no status yet")
+			}
+			return *statuses[0].Url, nil
+		}).(pulumi.StringOutput))
 		return nil
 	})
 }
