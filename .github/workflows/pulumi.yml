@@ -49,7 +49,3 @@ jobs:
           work-dir: infra
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
-          # JSON is valid YAML; action parses this and calls setAllConfig() before up()
-          config-map: '{"gcp-deploy:gcp:project": "coopstools-homebrew-prj"}'
-
-
