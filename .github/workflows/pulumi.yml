@@ -52,6 +52,6 @@ jobs:
           stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
           config-map: |
-            "gcp-deploy:gcp:project": "${{ vars.GCP_PROJECT || 'coopstools-homebrew-prj' }}"
+            "gcp:project": "${{ vars.GCP_PROJECT || 'coopstools-homebrew-prj' }}"
 
 
