@@ -43,5 +43,5 @@ jobs:
         with:
           command: up
           work-dir: infra
-          stack-name: gcp-deploy/${{ github.ref_name }}
+          stack-name: ${{ github.ref_name }}
           cloud-url: gs://coopstools-homebrew-prj-pulumi-state
