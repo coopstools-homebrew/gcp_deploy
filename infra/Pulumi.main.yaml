@@ -1,5 +1,6 @@
 config:
-  gcp:project: coopstools-homebrew-prj
-  gcp:zone: us-central1-a
+  gcp-deploy:
+    gcp:project: coopstools-homebrew-prj
+    gcp:zone: us-central1-a
 # Optional: set sshKeys via `pulumi config set sshKeys 'user:ssh-rsa AAAA...'`
 # or rely on ssh-keys/admin.pub at repo root (default user: james).
