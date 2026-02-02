@@ -2,7 +2,9 @@
 
 We use a **Google Cloud Storage bucket** for Pulumi state so GitHub Actions can read/write state using the same WIF credentials — no Pulumi Cloud token.
 
-Use the **existing** WIF service account (`github-actions@coopstools-homebrew-prj.iam.gserviceaccount.com`). Do **not** create a new service account for the bucket.
+Use the **existing** WIF service account (`github-actions@coopstools-homebrew-prj.iam.gserviceaccount.com`). Do **not** create a new service account for the bucket. For the full list of roles the service account needs (Compute Admin, Cloud Run Admin, Service Usage Admin, and this bucket role), see [gcp-wif-setup.md](gcp-wif-setup.md#service-account-roles) or the README **Service account roles**.
+
+**gcloud commands below:** Run them in the **GCP Console** (Cloud Shell or a terminal in the Console).
 
 ## Step-by-step: create the bucket and grant access
 
@@ -39,10 +41,9 @@ Replace `BUCKET_NAME` with your bucket name.
 
 **Console:** Cloud Storage → your bucket → Permissions → Grant access → principal: `github-actions@coopstools-homebrew-prj.iam.gserviceaccount.com`, role: **Storage Object Admin** → Save.
 
-### 3. Use the bucket in Pulumi
+### 3. Use the bucket in the workflow
 
-- **Locally:** Run once (where Pulumi CLI is installed): `pulumi login gs://BUCKET_NAME`
-- **GitHub Actions:** The workflow sets the backend to `gs://BUCKET_NAME`. No Pulumi Cloud token required.
+The GitHub Actions workflow sets the backend to `gs://BUCKET_NAME`. No Pulumi Cloud token required for the GCS backend.
 
 ### 4. GitHub Actions: Pulumi access token and passphrase (secrets)
 
@@ -50,39 +51,20 @@ The workflow needs **two** repo secrets. They are different values:
 
 | Secret | Where it comes from | Purpose |
 |--------|---------------------|--------|
-| **Access token** | Generated in the [Pulumi Console](https://app.pulumi.com/) (e.g. Settings → Access Tokens). | Used by the Pulumi CLI and GitHub Action to authenticate with Pulumi (e.g. for the backend). Store as a repo secret (e.g. `PULUMI_ACCESS_TOKEN`) and pass it as `PULUMI_ACCESS_TOKEN` in the workflow. |
-| **Passphrase** | You choose it when you create or use the stack (e.g. when first running `pulumi stack init` or when prompted for “Enter your passphrase”). | Used to encrypt/decrypt stack config and secrets. Store as a repo secret (e.g. `PULUMI_CONFIG_PASSPHRASE`) and pass it as `PULUMI_CONFIG_PASSPHRASE` in the workflow. |
+| **Access token** | Generated in the [Pulumi Console](https://app.pulumi.com/) (e.g. Settings → Access Tokens). | Used by the workflow to authenticate with Pulumi (e.g. for the backend). Store as a repo secret (e.g. `PULUMI_ACCESS_TOKEN`) and pass it as `PULUMI_ACCESS_TOKEN` in the workflow. |
+| **Passphrase** | You choose it when you create or use the stack (e.g. when the workflow creates the stack). | Used to encrypt/decrypt stack config and secrets. Store as a repo secret (e.g. `PULUMI_CONFIG_PASSPHRASE`) and pass it as `PULUMI_CONFIG_PASSPHRASE` in the workflow. |
 
-Add both in the repo: **Settings → Secrets and variables → Actions** → **New repository secret**. The workflow passes them into the Pulumi step so `pulumi up` can authenticate and decrypt state.
+Add both in the repo: **Settings → Secrets and variables → Actions** → **New repository secret**. The workflow passes them into the Pulumi step so the deploy can authenticate and decrypt state.
 
-**When you run the Pulumi CLI locally** (e.g. `pulumi login`, `pulumi config set`, `pulumi up`), use the **same** access token and passphrase so the CLI can read and write the same backend state and config. Set `PULUMI_ACCESS_TOKEN` in your environment to the same value as the repo secret, and use the same passphrase when the CLI prompts for it.
-
-#### Setting required config via CLI
-
-The infra program requires `gcp:project`. You can set it once per stack with:
-
-```bash
-cd infra
-pulumi login gs://BUCKET_NAME
-pulumi stack select STACK_NAME --create   # e.g. main or dev
-pulumi config set gcp:project GCP_PROJECT_ID
-```
-
-| Part | Meaning |
-|------|--------|
-| `infra` | Pulumi project directory (contains `Pulumi.yaml`). |
-| `gs://BUCKET_NAME` | GCS backend URL for Pulumi state (e.g. `gs://coopstools-homebrew-prj-pulumi-state`). |
-| `STACK_NAME` | Stack to configure, e.g. `main` (CI) or `dev` (local). Use `--create` to create the stack if it does not exist. |
-| `gcp:project` | Pulumi config key: namespace `gcp`, key `project`. The program reads this via `config.Require("gcp:project")`. |
-| `GCP_PROJECT_ID` | Your GCP project ID (e.g. `coopstools-homebrew-prj`). |
+Stack config (e.g. `gcp:project`) is set in the Pulumi stack file (e.g. `infra/Pulumi.main.yaml`) or via the workflow; the workflow uses the branch name as the stack name (e.g. `main`).
 
 ## Verification commands
 
-Run these to confirm permissions (replace `BUCKET_NAME` with your state bucket name).
+Run these in the **GCP Console** (Cloud Shell or a terminal in the Console) to confirm permissions (replace `BUCKET_NAME` with your state bucket name).
 
 ### WIF service account (project roles)
 
-Confirm the GitHub Actions service account has the roles it needs on the project (e.g. Compute Admin for Pulumi to create the VM):
+Confirm the GitHub Actions service account has all project roles (Compute Admin, Cloud Run Admin, Service Usage Admin). See [gcp-wif-setup.md](gcp-wif-setup.md#service-account-roles) for the full list.
 
 ```bash
 gcloud projects get-iam-policy coopstools-homebrew-prj \
