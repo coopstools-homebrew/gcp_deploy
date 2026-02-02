@@ -127,7 +127,7 @@ systemctl restart sshd
 				Spec: &cloudrun.ServiceTemplateSpecArgs{
 					Containers: cloudrun.ServiceTemplateSpecContainerArray{
 						&cloudrun.ServiceTemplateSpecContainerArgs{
-							Image: pulumi.String("gcr.io/cloudrun/container/hello"),
+							Image: pulumi.String("us-docker.pkg.dev/cloudrun/container/hello"),
 						},
 					},
 				},
