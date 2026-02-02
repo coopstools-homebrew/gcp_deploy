@@ -4,10 +4,10 @@ Use a subdomain of your domain (e.g. **ssh.coopstools.com**) so you can SSH to a
 
 ## How to get the VM's IP (for DNS)
 
-- **Locally:** After `pulumi up`, run: `pulumi stack output externalIP`
-- **From GitHub Actions:** The IP is printed in the Pulumi step output / run summary.
+- **From GitHub Actions:** The IP is printed in the Pulumi step output / run summary after a deploy.
+- **From GCP Console:** Compute Engine → VM instances → your VM → copy the external IP.
 
-The IP is stable because we use a reserved static external IP in Pulumi.
+The IP is stable because we use a reserved static external IP in the infra.
 
 ## Create an A record in your domain manager
 
