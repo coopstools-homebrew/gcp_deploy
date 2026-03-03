@@ -12,6 +12,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
+const (
+	hello_image = "gcr.io/coopstools-homebrew-prj/py-am-zuul"
+)
+
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		cfg := config.New(ctx, "gcp")
@@ -20,6 +24,7 @@ func main() {
 		if zone == "" {
 			zone = "us-central1-a"
 		}
+		region := "us-central1"
 
 		// SSH keys: config "sshKeys" (format "user:key") or read from ../ssh-keys/admin.pub with default user "james"
 		sshKeys, err := getSSHKeys(ctx, cfg)
@@ -121,13 +126,13 @@ systemctl restart sshd
 		// Phase 1: Cloud Run service (placeholder image, min 0, us-central1)
 		cloudRunSvc, err := cloudrun.NewService(ctx, "hello", &cloudrun.ServiceArgs{
 			Name:     pulumi.String("gcp-deploy-hello"),
-			Location: pulumi.String("us-central1"),
+			Location: pulumi.String(region),
 			Project:  pulumi.String(project),
 			Template: &cloudrun.ServiceTemplateArgs{
 				Spec: &cloudrun.ServiceTemplateSpecArgs{
 					Containers: cloudrun.ServiceTemplateSpecContainerArray{
 						&cloudrun.ServiceTemplateSpecContainerArgs{
-							Image: pulumi.String("us-docker.pkg.dev/cloudrun/container/hello"),
+							Image: pulumi.String(hello_image),
 						},
 					},
 				},

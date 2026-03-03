@@ -141,3 +141,64 @@ Find a binding where `member` is `serviceAccount:github-actions@coopstools-homeb
 - **`infra/`** — Pulumi Go program (VM, firewall, static IP, SSH keys, startup script)
 - **`.github/workflows/pulumi.yml`** — GitHub Actions: WIF auth, Pulumi preview + up, GCS backend
 - **`ssh-keys/admin.pub`** — Your SSH public key (gitignored in many setups; add manually if needed)
+
+---
+
+## Cloudbuild
+
+### Service Account for builds
+
+```bash
+#! /bin/bash/
+
+SA_NAME=coopstools-homebrew-build-sa
+
+gcloud config set project coopstools-homebrew-prj
+
+gcloud iam service-accounts create $SA_NAME \                         
+    --display-name="Service Account for coopstools-homebrew Cloud Build Trigger" \
+    --project="coopstools-homebrew-prj"
+
+# Grant Logs Writer role (addresses the logging error)
+gcloud projects add-iam-policy-binding "coopstools-homebrew-prj" \
+    --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" \
+    --role="roles/logging.logWriter"
+
+# Grant Artifact Registry Writer role (to push images)
+gcloud projects add-iam-policy-binding "coopstools-homebrew-prj" \
+    --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" \
+    --role="roles/artifactregistry.writer"
+
+# Grant Cloud Run Developer role (to deploy and manage Cloud Run services)
+gcloud projects add-iam-policy-binding "coopstools-homebrew-prj" \
+    --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" \
+    --role="roles/run.developer"
+
+# Grant Storage Object Admin role (to read/write Pulumi state in GCS bucket)
+# If your Pulumi state bucket is in a different project, you'd grant this role on that specific bucket.
+gcloud projects add-iam-policy-binding "coopstools-homebrew-prj" \
+    --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" \
+    --role="roles/storage.objectAdmin"
+
+# Grant Service Account User role (if the Cloud Build SA needs to impersonate the Cloud Run service identity)
+# This is commonly needed for Cloud Run deployments. The Cloud Run service identity is typically:
+# PROJECT_NUMBER-compute@developer.gserviceaccount.com or a custom one for your Cloud Run service.
+# You'll need your project number:
+PROJECT_NUMBER=$(gcloud projects describe "coopstools-homebrew-prj" --format="value(projectNumber)")
+gcloud iam service-accounts add-iam-policy-binding "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountUser"
+
+gcloud projects add-iam-policy-binding "coopstools-homebrew-prj"     --member="serviceAccount:$SA_NAME@coopstools-homebrew-prj.iam.gserviceaccount.com" --role="roles/storage.admin"
+```
+
+In order to allow following and building of a repo for deployment, we need to enable the cloudbuild api. This is simply done through
+
+```bash
+gcloud config set project coopstools-homebrew-prj # not necessary in console terminal
+gcloud services enable cloudbuild.googleapis.com
+```
+
+In the gcp console, search for "Cloud Build". Then follow "Triggers" -> "Connect repository". Follow the directions and add the necessary repositories.
+
+**Note: when adding new repos, the installed app will need to be updated, and the connected repos will need to be updated. (hopefully I'll remember to add instructions for this)
