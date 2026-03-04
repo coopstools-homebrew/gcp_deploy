@@ -53,7 +53,8 @@ echo "Granting project roles to GitHub Actions service account: $GITHUB_SA_EMAIL
 for ROLE in \
   roles/compute.admin \
   roles/run.admin \
-  roles/serviceusage.serviceUsageAdmin; do
+  roles/serviceusage.serviceUsageAdmin \
+  roles/artifactregistry.reader; do
   echo "  -> $ROLE"
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:$GITHUB_SA_EMAIL" \

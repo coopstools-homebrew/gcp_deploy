@@ -40,12 +40,13 @@ The GitHub Actions service account (e.g. `github-actions@coopstools-homebrew-prj
 | **Compute Admin** (`roles/compute.admin`) | Project | VM, firewall rules, static IP |
 | **Cloud Run Admin** (`roles/run.admin`) | Project | Create and manage Cloud Run services |
 | **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`) | Project | Enable APIs (e.g. Cloud Run) via Pulumi |
+| **Artifact Registry Reader** (`roles/artifactregistry.reader`) | Project | Allow deployer (GitHub Actions) to read container images for Cloud Run |
 | **Storage Object Admin** (`roles/storage.objectAdmin`) | State bucket only | Read/write Pulumi state in GCS |
 
 To grant the project roles in the **GCP Console** terminal (Cloud Shell), run (replace `YOUR_PROJECT_ID` and `YOUR_SA_EMAIL`):
 
 ```bash
-for role in roles/compute.admin roles/run.admin roles/serviceusage.serviceUsageAdmin; do
+for role in roles/compute.admin roles/run.admin roles/serviceusage.serviceUsageAdmin roles/artifactregistry.reader; do
   gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
     --member="serviceAccount:YOUR_SA_EMAIL" \
     --role="$role"
