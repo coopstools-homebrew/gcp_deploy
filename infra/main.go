@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/cloudrun"
+	crsvc "github.com/coopstools-homebrew/gcp_deploy/infra/cloudrun"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/compute"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp/projects"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	hello_image = "gcr.io/coopstools-homebrew-prj/py-am-zuul"
+	hello_image = "us-docker.pkg.dev/cloudrun/container/hello"
+	zuul_image = "gcr.io/coopstools-homebrew-prj/py-am-zuul"
 )
 
 func main() {
@@ -124,38 +125,7 @@ systemctl restart sshd
 		}
 
 		// Phase 1: Cloud Run service (placeholder image, min 0, us-central1)
-		cloudRunSvc, err := cloudrun.NewService(ctx, "hello", &cloudrun.ServiceArgs{
-			Name:     pulumi.String("gcp-deploy-hello"),
-			Location: pulumi.String(region),
-			Project:  pulumi.String(project),
-			Template: &cloudrun.ServiceTemplateArgs{
-				Spec: &cloudrun.ServiceTemplateSpecArgs{
-					Containers: cloudrun.ServiceTemplateSpecContainerArray{
-						&cloudrun.ServiceTemplateSpecContainerArgs{
-							Image: pulumi.String(hello_image),
-						},
-					},
-				},
-			},
-			Traffics: cloudrun.ServiceTrafficArray{
-				&cloudrun.ServiceTrafficArgs{
-					Percent:        pulumi.Int(100),
-					LatestRevision: pulumi.Bool(true),
-				},
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		// Allow unauthenticated invokes (for Phase 1 test via curl/browser)
-		_, err = cloudrun.NewIamMember(ctx, "hello-invoker", &cloudrun.IamMemberArgs{
-			Location: cloudRunSvc.Location,
-			Project:  cloudRunSvc.Project,
-			Service:  cloudRunSvc.Name,
-			Role:     pulumi.String("roles/run.invoker"),
-			Member:   pulumi.String("allUsers"),
-		})
+		cloudRunURL, err := crsvc.CreateHelloService(ctx, project, region, zuul_image)
 		if err != nil {
 			return err
 		}
@@ -168,12 +138,7 @@ systemctl restart sshd
 			return fmt.Sprintf("ssh james@%s", ip)
 		})
 		ctx.Export("sshCommand", sshCmd)
-		ctx.Export("cloudRunUrl", cloudRunSvc.Statuses.ApplyT(func(statuses []cloudrun.ServiceStatus) (string, error) {
-			if len(statuses) == 0 || statuses[0].Url == nil {
-				return "", fmt.Errorf("no status yet")
-			}
-			return *statuses[0].Url, nil
-		}).(pulumi.StringOutput))
+		ctx.Export("cloudRunUrl", cloudRunURL)
 		return nil
 	})
 }
