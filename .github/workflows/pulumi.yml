@@ -37,6 +37,16 @@ jobs:
         working-directory: infra
         run: go mod download
 
+      - name: Pulumi Refresh
+        uses: pulumi/actions@v6
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_ACTUAL_PASSPHRASE }}
+        with:
+          command: refresh
+          work-dir: infra
+          stack-name: ${{ github.ref_name }}
+          cloud-url: gs://coopstools-homebrew-prj-pulumi-state
+
       - name: Pulumi Up
         uses: pulumi/actions@v6
         env:
