@@ -67,6 +67,18 @@ gcloud iam service-accounts add-iam-policy-binding PROJECT_NUMBER-compute@develo
 
 Or in the **GCP Console:** IAM & Admin → Service Accounts → open the default Compute Engine service account → Permissions → Grant access → principal: `github-actions@YOUR_PROJECT_ID.iam.gserviceaccount.com`, role: **Service Account User** → Save.
 
+### Artifact Registry Reader (for Cloud Run image pull)
+
+The **default Compute Engine service account** (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) must have **Artifact Registry Reader** so Cloud Run can pull the container image when it deploys or updates a revision. Without it you get: `Permission 'artifactregistry.repositories.downloadArtifacts' denied`. Run this in the **GCP Console** terminal (Cloud Shell), replacing `PROJECT_NUMBER` with your project number (e.g. `853352203266`) and `YOUR_PROJECT_ID` with your project ID:
+
+```bash
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/artifactregistry.reader"
+```
+
+Or in the **GCP Console:** IAM & Admin → IAM → find the default Compute Engine service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) → Edit → Add another role → **Artifact Registry Reader** → Save.
+
 ## Required GitHub configuration
 
 The workflow uses **Workload Identity Federation** and optionally **GitHub Variables** (Settings → Secrets and variables → Actions → Variables):
@@ -135,6 +147,7 @@ Find a binding where `member` is `serviceAccount:github-actions@coopstools-homeb
 - [docs/gcp-wif-setup.md](docs/gcp-wif-setup.md) — WIF overview and values used
 - [docs/pulumi-state-gcs.md](docs/pulumi-state-gcs.md) — GCS bucket and verification
 - [docs/domain-dns.md](docs/domain-dns.md) — Subdomain A record for the VM
+ - [docs/service-accounts-setup.md](docs/service-accounts-setup.md) — Scripted setup of service accounts and IAM roles
 
 ## Layout
 
