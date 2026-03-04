@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	hello_image = "us-docker.pkg.dev/cloudrun/container/hello"
-	zuul_image = "gcr.io/coopstools-homebrew-prj/py-am-zuul"
+	helloImageDefault = "us-docker.pkg.dev/cloudrun/container/hello"
+	zuulImageDefault  = "gcr.io/coopstools-homebrew-prj/py-am-zuul"
 )
 
 func main() {
@@ -124,13 +124,18 @@ systemctl restart sshd
 			return err
 		}
 
-		// Phase 1: Cloud Run service (placeholder image, min 0, us-central1)
-		cloudRunURL, err := crsvc.CreateHelloService(ctx, project, region, zuul_image)
+		// Phase 1: Cloud Run service — image from config or default
+		cloudRunImage := cfg.Get("cloudRunImage")
+		if cloudRunImage == "" {
+			cloudRunImage = zuulImageDefault
+		}
+		cloudRunURL, err := crsvc.CreateHelloService(ctx, project, region, cloudRunImage)
 		if err != nil {
 			return err
 		}
 
 		// Outputs
+		ctx.Export("cloudRunImage", pulumi.String(cloudRunImage))
 		ctx.Export("instanceName", instance.Name)
 		ctx.Export("instanceId", instance.InstanceId)
 		ctx.Export("externalIP", extIP.Address)
